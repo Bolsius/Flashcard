@@ -2,3 +2,4 @@ Flask==2.3.2
 pandas==1.5.3
 openpyxl==3.1.2
 xlsxwriter==3.0.9
+numpy==1.23.5
