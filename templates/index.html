@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <title>Flashcards</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
@@ -117,7 +118,56 @@
         label[for="percentageInput"] {
             color: #d3d3d3;
         }
+        .popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2000;
+            background-color: white;
+            box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            padding: 20px;
+            width: 300px;
+            display: none; /* Verberg de popup standaard */
+        }
+
+        .popup-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .hidden {
+            display: none;
+        }
+        .icon-button {
+            background: none;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            color: white; /* Kleur van het icoon */
+            font-size: 12px; /* Grootte van het icoon */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .icon-button i {
+            margin: 0;
+        }
+
+
     </style>
+    <script src="{{ url_for('static', filename='script.js') }}" defer></script>
 </head>
 <body>
     <div class="header-controls">
@@ -131,13 +181,12 @@
     <div class="controls-container">
         <label id="fileInputLabel" class="button button-primary" for="fileInput">Choose File</label>
         <button id="nextRoundButton" class="button button-primary" style="display:none;" onclick="startNewRound()">Next Round</button>
-        <div class="input-container" style="display:none;">
-            <input type="text" id="percentageInput" value="0">
-            <label for="percentageInput">%</label>
-            <span class="info-icon">i
-                <span class="tooltip">What % of already correct answers do you want to review?</span>
-            </span>
-        </div>
+        <button id="shuffleButton" class="button button-secondary" style="display:none;" onclick="shuffleQuestions()">Reload list</button>
+
+        <button id="settingsButton" class="icon-button" style="display:none;" onclick="toggleSettingsPopup()">
+            <i class="fa fa-cog"></i>
+        </button>     
+
         <div class="teller-container" style="display: none;">
             <div class="teller-item">
                 <span>Loaded Questions</span>
@@ -153,198 +202,23 @@
             </div>
         </div>
     </div>
-
+    
+    <div id="settingsPopup" class="popup hidden">
+        <div class="popup-content">
+            <span class="close" onclick="toggleSettingsPopup()">&times;</span>
+            <div class="input-container">
+                <input type="text" id="percentageInput" value="0">
+                <label for="percentageInput">%</label>
+                <span class="info-icon">i
+                    <span class="tooltip">What % of already correct answers do you want to review?</span>
+                </span>
+            </div>
+        </div>
+    </div>
+    
     <input type="file" id="fileInput" onchange="uploadFile()" style="display:none;">
     
     <div id="flashcards"></div>
-
-    <script>
-        let currentQuestions = [];
-        let isDownloaded = false;
-        let suppressWarning = false;  // Zet deze hier bovenaan je script
-    
-        function handleBeforeUnload(e) {
-            if (!suppressWarning && !isDownloaded) {  // Alleen waarschuwing geven als suppressWarning false is en niet is gedownload
-                const confirmationMessage = 'You have unsaved changes. If you leave this page, you will lose your current progress.';
-                (e || window.event).returnValue = confirmationMessage; // Standaard voor sommige browsers
-                return confirmationMessage;
-            }
-        }
-    
-        // Voeg de event listener toe voor het verlaten van de pagina
-        window.addEventListener('beforeunload', handleBeforeUnload);
-    
-        function downloadTemplate() {
-            // Verwijder de beforeunload event listener tijdelijk
-            window.removeEventListener('beforeunload', handleBeforeUnload);
-    
-            // Start de download
-            window.location.href = '/download_template';
-    
-            // Voeg de beforeunload event listener weer toe na een korte vertraging
-            setTimeout(() => {
-                window.addEventListener('beforeunload', handleBeforeUnload);
-            }, 1000);
-        }
-    
-        function uploadFile() {
-            console.log("UploadFile function called");
-            const input = document.getElementById('fileInput');
-            const file = input.files[0];
-    
-            if (!file) {
-                console.error('No file selected');
-                return;
-            }
-    
-            const formData = new FormData();
-            formData.append('file', file);
-    
-            fetch('/upload', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log("Upload successful:", data);
-                currentQuestions = data.questions;
-                isDownloaded = false;  // Markeer dat de gegevens nog niet zijn gedownload
-                updateCounters(data.loaded_questions, 0, data.total_questions);
-                displayFlashcards(currentQuestions);
-                showFlashcardControls();
-                showDownloadCurrentButton();  // Zorg ervoor dat de downloadknop na upload zichtbaar blijft
-                document.querySelector('.teller-container').style.display = 'block';  // Tellers tonen na upload
-            })
-            .catch(error => console.error('Error:', error));
-        }
-    
-        function updateCounters(loaded, done, total) {
-            document.getElementById('loadedQuestions').textContent = loaded;
-            document.getElementById('doneThisRound').textContent = done;
-            document.getElementById('totalQuestions').textContent = total;
-        }
-    
-        function startNewRound() {
-            let percentageInput = document.getElementById('percentageInput').value || '0';
-            let percentage = parseInt(percentageInput) || 0;
-    
-            fetch('/next_round', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ percentage_correct: percentage })
-            })
-            .then(response => response.json())
-            .then(data => {
-                currentQuestions = data;
-                const totalQuestions = document.getElementById('totalQuestions').textContent; // Behoud het totale aantal vragen
-                updateCounters(data.length, 0, totalQuestions); // Gebruik het totale aantal vragen dat eerder was ingesteld
-                displayFlashcards(currentQuestions);
-            })
-            .catch(error => console.error('Error starting new round:', error));
-        }
-    
-        function showFlashcardControls() {
-            document.getElementById('downloadTemplateButton').style.display = 'none';
-            document.getElementById('fileInput').style.display = 'none';
-            document.getElementById('fileInputLabel').style.display = 'none';
-    
-            // Maak de Next Round knop zichtbaar
-            document.getElementById('nextRoundButton').style.display = 'block';
-    
-            // Maak de input container met de inputbox, % en i zichtbaar
-            document.querySelector('.input-container').style.display = 'flex';
-    
-            // Maak de downloadknop zichtbaar
-            document.getElementById('downloadCurrentButton').style.display = 'block';
-    
-            // Zorg ervoor dat de tellers zichtbaar zijn
-            document.querySelector('.teller-container').style.display = 'block';
-        }
-    
-        function downloadCurrent() {
-            console.log("Attempting to download the current file...");
-            fetch('/download_file')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Network response was not ok: ${response.statusText}`);
-                }
-                return response.blob();
-            })
-            .then(blob => {
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                a.download = 'flashcards_current.xlsx';
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                isDownloaded = true;  // Markeer dat de huidige versie is gedownload
-            })
-            .catch(error => console.error('Error downloading the file:', error));
-        }
-    
-        function displayFlashcards(data) {
-            const flashcardsDiv = document.getElementById('flashcards');
-            flashcardsDiv.innerHTML = '';
-            data.forEach((item, index) => {
-                const flashcard = document.createElement('div');
-                flashcard.classList.add('flashcard');
-                flashcard.innerHTML = `
-                    <p><strong>Question:</strong> ${item.question}</p>
-                    <p class="answer hidden"><strong>Answer:</strong> ${item.answer}</p>
-                    <button onclick="showAnswer(this)" class="button button-primary">Show Answer</button>
-                    <div class="answer-options hidden">
-                        <button onclick="markAsCorrect(this, ${item.id}, '${item.answer}')" class="button button-primary">Correct</button>
-                        <button onclick="markAsIncorrect(this, ${item.id}, '${item.answer}')" class="button button-secondary">Incorrect</button>
-                    </div>`;
-                flashcardsDiv.appendChild(flashcard);
-            });
-        }
-    
-        function showAnswer(button) {
-            const flashcard = button.parentElement;
-            flashcard.querySelector('.answer').classList.remove('hidden');
-            flashcard.querySelector('.answer-options').classList.remove('hidden');
-            button.classList.add('hidden');
-        }
-    
-        function markAsCorrect(button, id, answer) {
-            trackQuestion(id, answer, 'correct');
-            button.classList.add('correct');
-            button.nextElementSibling.classList.add('hidden');
-        }
-    
-        function markAsIncorrect(button, id, answer) {
-            trackQuestion(id, answer, 'incorrect');
-            button.classList.add('incorrect');
-            button.previousElementSibling.classList.add('hidden');
-        }
-    
-        function trackQuestion(id, answer, status) {
-            fetch('/track', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify([{ id, answer, status }])
-            })
-            .then(() => updateStats()) // Update de statistieken na het bijhouden van een vraag
-            .catch(error => console.error('Error tracking question:', error));
-        }
-    
-        function updateStats() {
-            fetch('/get_stats')
-            .then(response => response.json())
-            .then(data => {
-                updateCounters(data.loaded_questions, data.done_this_round, data.total_questions);
-            })
-            .catch(error => console.error('Error updating stats:', error));
-        }
-    </script>
     
 </body>
 </html>
