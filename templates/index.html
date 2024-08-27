@@ -5,173 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <title>Flashcards</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
-        .flashcard { border: 1px solid #ccc; padding: 20px; margin: 20px; text-align: center; }
-        .hidden { display: none; }
-        .button { padding: 10px 20px; cursor: pointer; margin: 5px 0; }
-        .button-primary { background-color: #007BFF; color: white; border: none; border-radius: 4px; }
-        .button-secondary { background-color: #6C757D; color: white; border: none; border-radius: 4px; }
-        .correct { background-color: green; color: white; }
-        .incorrect { background-color: red; color: white; }
-        .small-button { padding: 10px 20px; font-size: 12px; position: fixed; top: 20px; right: 20px; }
-        .input-container { display: flex; align-items: center; }
-        .input-container input { padding: 5px; width: 50px; border: 1px solid #ccc; border-radius: 4px; margin-right: 2px; }
-                .input-container {
-            display: flex;
-            align-items: center;
-            margin-right: auto;  /* Zorg ervoor dat de input-container naar links wordt geduwd */
-        }
-        .info-icon {
-            font-size: 14px;
-            color: #d3d3d3;
-            margin-left: 5px;
-            position: relative;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 15px;
-            height: 15px;
-            border-radius: 50%;
-            border: 1px solid #d3d3d3;
-        }
-        .info-icon:hover .tooltip {
-            display: block;
-        }
-        .tooltip {
-            display: none;
-            position: absolute;
-            background-color: #333;
-            color: #d3d3d3;
-            padding: 5px;
-            border-radius: 4px;
-            top: 30px;
-            left: 20px;
-            font-size: 12px;
-            white-space: nowrap;
-            z-index: 1;
-        }
-        .header-controls {
-            position: fixed;  /* Zorg ervoor dat de header altijd bovenaan blijft */
-            top: 0;
-            right: 20px;
-            left: 5px;
-            background-color: white;
-            z-index: 1000;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 5px; /* Algemeen padding voor de header */
-            padding-right: 2px; /* Specifieke padding aan de rechterkant voor extra ruimte */
-            border-bottom: 1px solid #ccc;
-        }
-
-        .controls-container {
-            position: fixed;  /* Zorg ervoor dat de knoppenbalk altijd onder de header blijft */
-            top: 100px; /* Zorg ervoor dat het direct onder de header staat */
-            width: 100%;
-            background-color: #3B3B3B; /* Nieuwe achtergrondkleur voor de balk */
-            z-index: 1000;
-            display: flex;
-            justify-content: space-between; /* Plaats inhoud aan beide zijden */
-            align-items: center;
-            padding: 10px 20px;
-            border-bottom: 1px solid #ccc;
-            box-sizing: border-box; /* Zorg ervoor dat padding wordt meegerekend in de breedte */
-            gap: 10px; /* Voeg ruimte toe tussen de kinderen van controls-container */
-        }
-
-        .teller-container {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 5px;
-            color: white;
-            font-weight: bold;
-            font-size: 9px;
-            margin-left: auto;  /* Zorg ervoor dat de teller-container naar rechts wordt geduwd */
-        }
-
-        .teller-item {
-            display: flex;  
-            justify-content: space-between; /* Plaats de labels en aantallen naast elkaar */
-            align-items: center; /* Verticaal centreren van label en waarde */
-            width: 100%; 
-        }
-
-        .teller-item span {
-            text-align: left; /* Labels links uitlijnen */
-            color: lightgray;
-            margin-right: 5px; /* Voeg wat ruimte toe tussen het label en het aantal */
-        }
-
-        .teller-item div {
-            text-align: right; /* Aantallen rechts uitlijnen */
-            white-space: nowrap; /* Voorkom dat de cijfers naar een nieuwe regel worden verplaatst */
-        }
-
-        #flashcards {
-            padding-top: 160px; /* Voeg ruimte toe boven de vragen zodat de header en knoppenbalk er niet overheen vallen */
-        }
-
-        label[for="percentageInput"] {
-            color: #d3d3d3;
-        }
-        .popup {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 2000;
-            background-color: white;
-            box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.2);
-            border-radius: 8px;
-            padding: 20px;
-            width: 300px;
-            display: none; /* Verberg de popup standaard */
-        }
-
-        .popup-content {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .close {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            font-size: 20px;
-            cursor: pointer;
-        }
-
-        .hidden {
-            display: none;
-        }
-        .icon-button {
-            background: none;
-            border: none;
-            padding: 0;
-            cursor: pointer;
-            color: white; /* Kleur van het icoon */
-            font-size: 12px; /* Grootte van het icoon */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .icon-button i {
-            margin: 0;
-        }
-
-
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script src="{{ url_for('static', filename='script.js') }}" defer></script>
 </head>
 <body>
     <div class="header-controls">
-        <h1 style="font-size: 36px; font-weight: bold;">Flashcards</h1> <!-- Pas de stijl van de titel aan -->
+        <h1 style="font-size: 36px; font-weight: bold;">Flashcards</h1>
         <div>
             <button id="downloadTemplateButton" class="button button-secondary" onclick="downloadTemplate()">Download Template</button>
             <button id="downloadCurrentButton" class="button button-secondary" style="display: none;" onclick="downloadCurrent()">Download Current</button>
@@ -185,7 +24,7 @@
 
         <button id="settingsButton" class="icon-button" style="display:none;" onclick="toggleSettingsPopup()">
             <i class="fa fa-cog"></i>
-        </button>     
+        </button>
 
         <div class="teller-container" style="display: none;">
             <div class="teller-item">
@@ -203,22 +42,41 @@
         </div>
     </div>
     
-    <div id="settingsPopup" class="popup hidden">
-        <div class="popup-content">
-            <span class="close" onclick="toggleSettingsPopup()">&times;</span>
-            <div class="input-container">
-                <input type="text" id="percentageInput" value="0">
-                <label for="percentageInput">%</label>
-                <span class="info-icon">i
-                    <span class="tooltip">What % of already correct answers do you want to review?</span>
-                </span>
-            </div>
-        </div>
+<!-- Instellingen Knop -->
+<button id="settingsButton" class="icon-button">
+    <i class="fa fa-cog"></i>
+</button>
+
+<!-- Popup Achtergrond -->
+<div id="settingsPopupBackdrop" class="hidden"></div>
+
+<!-- Instellingen Popup -->
+<div id="settingsPopup" class="settings-popup hidden">
+    <button class="close-popup" onclick="toggleSettingsPopup()">×</button> <!-- Sluitknop rechtsboven -->
+    <h3 style="text-align: center; font-size: 16px; color: #333;">Settings</h3>
+    <div class="input-container">
+        <label for="percentageInput">Correct %:</label>
+        <input type="number" id="percentageInput" name="percentageInput" min="0" max="100" value="0">
     </div>
+
+    <div class="input-container">
+        <label for="questionCountInput">Questions:</label>
+        <input type="number" id="questionCountInput" name="questionCountInput">
+    </div>
+
+    <div class="input-container">
+        <label for="categorySelect">Categories:</label>
+        <select id="categorySelect" name="categorySelect" multiple>
+            <!-- Categorieën worden hier dynamisch geladen -->
+        </select>
+    </div>
+</div>
+
+
+
+    <button onclick="startNewRound()">Apply</button>
     
     <input type="file" id="fileInput" onchange="uploadFile()" style="display:none;">
-    
-    <div id="flashcards"></div>
-    
+    <div id="flashcards"></div> 
 </body>
 </html>

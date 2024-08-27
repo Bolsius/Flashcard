@@ -1,0 +1,278 @@
+/* Algemene Stijl */
+body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+.hidden { display: none; }
+.flashcard { border: 1px solid #ccc; padding: 20px; margin: 20px; text-align: center; }
+
+/* Knoppen Stijlen */
+.button { padding: 10px 20px; cursor: pointer; margin: 5px 0; }
+.button-primary { background-color: #007BFF; color: white; border: none; border-radius: 4px; }
+.button-secondary { background-color: #6C757D; color: white; border: none; border-radius: 4px; }
+.correct { background-color: green; color: white; }
+.incorrect { background-color: red; color: white; }
+.small-button { padding: 10px 20px; font-size: 12px; position: fixed; top: 20px; right: 20px; }
+
+/* Input Containers */
+.input-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #ccc; /* Lichtgrijze lijn tussen inputvelden */
+    margin-right: auto;  /* Zorg ervoor dat de input-container naar links wordt geduwd */
+}
+.input-container:last-child {
+    border-bottom: none; /* Verwijder de lijn onder het laatste inputveld */
+}
+.input-container input {
+    padding: 5px;
+    width: 50px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-right: 2px;
+    text-align: right; /* Tekst rechts uitlijnen */
+}
+.simple-explanation {
+    color: #999; /* Lichtgrijze kleur voor subtiele uitleg */
+    font-size: 12px;
+    margin-left: 10px; /* Ruimte tussen het invoerveld en de uitleg */
+}
+
+/* Dropdown Stijlen */
+#categorySelect {
+    width: 100%;
+    padding: 5px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    background-color: #fff;
+}
+
+/* Popup Styling */
+.settings-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    width: 300px;
+    font-size: 14px; /* Kleiner lettertype voor strakkere opmaak */
+}
+
+/* Sluitknop Styling */
+.close-popup {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    color: #333;
+}
+.close-popup:hover {
+    color: #000;
+}
+
+/* Achtergrond Styling voor de Popup */
+#settingsPopupBackdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    display: none;
+}
+
+
+.redo-text {
+    font-size: 12px;
+    color: #999;
+    margin-top: 5px;
+    cursor: pointer;
+    display: none; /* Standaard verborgen */
+}
+
+/* Header Controls Styling */
+.header-controls {
+    position: fixed;  /* Zorg ervoor dat de header altijd bovenaan blijft */
+    top: 0;
+    right: 20px;
+    left: 5px;
+    background-color: white;
+    z-index: 1000;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 5px; /* Algemeen padding voor de header */
+    padding-right: 2px; /* Specifieke padding aan de rechterkant voor extra ruimte */
+    border-bottom: 1px solid #ccc;
+}
+
+/* Controls Container Styling */
+.controls-container {
+    position: fixed;  /* Zorg ervoor dat de knoppenbalk altijd onder de header blijft */
+    top: 100px; /* Zorg ervoor dat het direct onder de header staat */
+    width: 100%;
+    background-color: #3B3B3B; /* Nieuwe achtergrondkleur voor de balk */
+    z-index: 1000;
+    display: flex;
+    justify-content: space-between; /* Plaats inhoud aan beide zijden */
+    align-items: center;
+    padding: 10px 20px;
+    border-bottom: 1px solid #ccc;
+    box-sizing: border-box; /* Zorg ervoor dat padding wordt meegerekend in de breedte */
+    gap: 10px; /* Voeg ruimte toe tussen de kinderen van controls-container */
+}
+
+/* Teller Container Styling */
+.teller-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
+    color: white;
+    font-weight: bold;
+    font-size: 9px;
+    margin-left: auto;  /* Zorg ervoor dat de teller-container naar rechts wordt geduwd */
+}
+.teller-item {
+    display: flex;  
+    justify-content: space-between; /* Plaats de labels en aantallen naast elkaar */
+    align-items: center; /* Verticaal centreren van label en waarde */
+    width: 100%; 
+}
+.teller-item span {
+    text-align: left; /* Labels links uitlijnen */
+    color: lightgray;
+    margin-right: 5px; /* Voeg wat ruimte toe tussen het label en het aantal */
+}
+.teller-item div {
+    text-align: right; /* Aantallen rechts uitlijnen */
+    white-space: nowrap; /* Voorkom dat de cijfers naar een nieuwe regel worden verplaatst */
+}
+
+/* Flashcards Container Padding */
+#flashcards {
+    display: flex;
+    flex-direction: column; /* Zorg ervoor dat de flashcards verticaal worden uitgelijnd */
+    overflow-y: auto; /* Zorg voor een scrollbaar gebied */
+    scroll-snap-type: y mandatory; /* Activeer het scroll-snap effect */
+    height: calc(100vh - 150px); /* Zorg ervoor dat de container onder de controls-container begint */
+    scroll-behavior: smooth; /* Maak het scrollen soepel */
+    margin-top: 150px; /* Verplaats de start van de flashcards onder de controls-container */
+    margin-left: 50px;
+}
+
+.flashcard {
+    position: relative;  /* Dit is cruciaal om ervoor te zorgen dat absolute posities werken binnen de flashcard */
+    padding: 20px;
+    margin: 20px 0;
+    width: 500px;
+    border: 1px solid #ccc;
+    background-color: white;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1); /* Voeg eventueel een schaduw toe voor beter contrast */
+}
+
+
+.flashcard-category {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    transform: rotate(180deg);
+    position: absolute;
+    left: 0;
+    top: 0px;  /* Zorgt ervoor dat het element niet de hele lengte van de pagina vult */
+    background-color: #e0e0e0;
+    padding: 10px 5px;
+    font-weight: bold;
+    border-radius: 8px 0 0 8px;
+    height: calc(100% - 20px);  /* Verkleint het element om binnen de flashcard te passen */
+    max-height: 100%;  /* Zorgt ervoor dat het niet hoger is dan de flashcard */
+}
+
+.flashcard-number {
+    position: absolute;
+    bottom: 5px;
+    right: 30px;
+    font-size: 12px;
+    color: #999;
+    max-width: calc(100% - 40px);  /* Zorgt ervoor dat het binnen de kaart blijft */
+    white-space: nowrap;  /* Voorkomt dat het naar een nieuwe regel gaat */
+}
+
+.flashcard-id {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    font-size: 12px;  /* Kleine tekstgrootte */
+    color: #999;  /* Grijze kleur */
+    max-width: calc(100% - 40px);  /* Zorgt ervoor dat het binnen de kaart blijft */
+    white-space: nowrap;  /* Voorkomt dat de ID naar een nieuwe regel gaat */
+}
+
+
+/* Specifieke Label Styling */
+label[for="percentageInput"] {
+    color: #d3d3d3;
+}
+
+/* Pop-up Class */
+.popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 2000;
+    background-color: white;
+    box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    padding: 20px;
+    width: 300px;
+    /* Geen display: none; hier */
+}
+
+/* Popup Content Class */
+.popup-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Sluitknop in Popup */
+.close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+/* Icon Button Styling */
+.icon-button {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: white; /* Kleur van het icoon */
+    font-size: 12px; /* Grootte van het icoon */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.icon-button i {
+    margin: 0;
+}
+
+/* Correct en Incorrect Button Styling */
+button.correct {
+    background-color: green;
+    color: white;
+}
+button.incorrect {
+    background-color: red;
+    color: white;
+}

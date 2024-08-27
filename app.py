@@ -51,35 +51,31 @@ import random
 
 @app.route('/next_round', methods=['POST'])
 def next_round():
-    global uploaded_df
-
     try:
-        data = request.json
-        percentage_correct = data.get('percentage_correct', 0)
+        request_data = request.get_json()
+        percentage_correct = request_data.get('percentage_correct', 0)
+        selected_categories = request_data.get('categories', [])
 
-        # Selecteer de incorrecte vragen
-        incorrect_questions = uploaded_df[uploaded_df['status'] == 'incorrect']
+        if selected_categories:
+            filtered_df = uploaded_df[uploaded_df['category'].isin(selected_categories)]
+        else:
+            filtered_df = uploaded_df
 
-        # Selecteer een percentage van de correcte vragen
-        correct_questions = uploaded_df[uploaded_df['status'] == 'correct']
-        num_correct_to_include = int(len(correct_questions) * (percentage_correct / 100))
-        correct_questions_to_include = correct_questions.sample(n=num_correct_to_include)
+        unanswered_questions = filtered_df[filtered_df['status'] == 'unanswered']
+        incorrect_questions = filtered_df[filtered_df['status'] == 'incorrect']
 
-        # Combineer incorrecte en geselecteerde correcte vragen
-        next_round_questions = pd.concat([incorrect_questions, correct_questions_to_include])
-
-        # Verwijder dubbele vragen (voor het geval een vraag correct en incorrect is)
-        next_round_questions = next_round_questions.drop_duplicates(subset=['id'])
+        # Combineer de vragen op basis van de geselecteerde categorieën
+        next_round_questions = pd.concat([unanswered_questions, incorrect_questions])
 
         # Shuffle de vragen voor een random volgorde
         next_round_questions = next_round_questions.sample(frac=1).reset_index(drop=True)
 
         questions = next_round_questions.to_dict(orient='records')
 
-        return jsonify(questions), 200
-
+        return jsonify(questions)
     except Exception as e:
-        return jsonify({'error': f'An error occurred: {str(e)}'}), 500
+        return jsonify({'error': str(e)}), 500
+
 
 
 @app.route('/download_template')
@@ -90,6 +86,7 @@ def download_template():
             'id': [1],
             'question': [''],
             'answer': [''],
+            'category': [''],  # Nieuwe Category kolom toegevoegd
             'correct': [0],
             'incorrect': [0],
             'status': ['unanswered']
@@ -100,19 +97,19 @@ def download_template():
             df.to_excel(writer, index=False, startrow=0)
             workbook = writer.book
             worksheet = writer.sheets['Sheet1']
-            
+
             # Vul automatisch de ID kolom met een formule
             worksheet.write('A2', 1)
             for row_num in range(3, 102):  # Stel een bereik in voor bijvoorbeeld 100 vragen
                 cell_address = f'A{row_num}'
                 worksheet.write_formula(cell_address, f'=IF(B{row_num}="", "", A{row_num-1}+1)')
-            
+
             # Vul automatisch de kolommen correct, incorrect en status met formules
             for row_num in range(2, 102):
                 worksheet.write_formula(f'D{row_num}', f'=IF(B{row_num}="", "", 0)')  # Kolom 'correct'
                 worksheet.write_formula(f'E{row_num}', f'=IF(B{row_num}="", "", 0)')  # Kolom 'incorrect'
                 worksheet.write_formula(f'F{row_num}', f'=IF(B{row_num}="", "", "unanswered")')  # Kolom 'status'
-        
+
         output.seek(0)
 
         return send_file(
@@ -180,7 +177,7 @@ def upload():
 
         file = request.files['file']
         print(f"Received file: {file.filename}, Content-Type: {file.content_type}")
-        
+
         if file.filename == '':
             print("No selected file")
             return jsonify({'error': 'No selected file'}), 400
@@ -188,18 +185,23 @@ def upload():
         try:
             uploaded_df = pd.read_excel(file)
             print("File read successfully")
-            
+
             uploaded_df['correct'] = uploaded_df['correct'].fillna(0)
             uploaded_df['incorrect'] = uploaded_df['incorrect'].fillna(0)
             uploaded_df['status'] = uploaded_df['status'].fillna('unanswered')
+
+            # Controleer of de kolom 'category' bestaat, zo niet, voeg een lege categorie toe
+            if 'category' not in uploaded_df.columns:
+                uploaded_df['category'] = ''
 
             print(uploaded_df.head())
 
         except Exception as e:
             print(f"Failed to read Excel file: {str(e)}")
-            return jsonify({'error': f'Failed to read Excel file: {str(e)}'}), 400
-        
-        required_columns = ['id', 'question', 'answer', 'correct', 'incorrect', 'status']
+            return jsonify({'error': 'Failed to read Excel file: {}'.format(str(e))}), 400
+
+
+        required_columns = ['id', 'question', 'answer', 'category', 'correct', 'incorrect', 'status']
         for column in required_columns:
             if column not in uploaded_df.columns:
                 print(f"Missing required column: {column}")
@@ -207,7 +209,7 @@ def upload():
 
         correct_incorrect_tracker = uploaded_df.copy()
         total_questions = len(uploaded_df)
-        
+
         # Automatisch selecteer de juiste vragen voor de volgende ronde
         unanswered_questions = uploaded_df[uploaded_df['status'] == 'unanswered']
         incorrect_questions = uploaded_df[uploaded_df['status'] == 'incorrect']
