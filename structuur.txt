@@ -1,0 +1,16 @@
+Folder PATH listing
+Volume serial number is 462F-1738
+C:.
+¦   app.py
+¦   Procfile
+¦   requirements.txt
+¦   runtime.txt
+¦   structuur.txt
+¦   
++---static
+¦       script.js
+¦       style.css
+¦       
++---templates
+        index.html
+        
