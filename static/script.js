@@ -1,40 +1,12 @@
 let currentQuestions = [];
 let isDownloaded = false;
 let suppressWarning = false;
+
 console.log("script.js is geladen");
 
-function handleBeforeUnload(e) {
-    if (!suppressWarning && !isDownloaded) {
-        const confirmationMessage = 'You have unsaved changes. If you leave this page, you will lose your current progress.';
-        (e || window.event).returnValue = confirmationMessage;
-        return confirmationMessage;
-    }
-}
 window.addEventListener('beforeunload', handleBeforeUnload);
 
-function downloadTemplate() {
-    window.removeEventListener('beforeunload', handleBeforeUnload);
-    window.location.href = '/download_template';
-    setTimeout(() => {
-        window.addEventListener('beforeunload', handleBeforeUnload);
-    }, 1000);
-}
-
 document.addEventListener('DOMContentLoaded', function() {
-    function toggleSettingsPopup() {
-        console.log("toggleSettingsPopup is called");
-        const popup = document.getElementById('settingsPopup');
-        const backdrop = document.getElementById('settingsPopupBackdrop');
-
-        if (popup.classList.contains('hidden')) {
-            popup.classList.remove('hidden');
-            backdrop.classList.remove('hidden');
-        } else {
-            popup.classList.add('hidden');
-            backdrop.classList.add('hidden');
-        }
-    }
-
     const settingsButton = document.getElementById('settingsButton');
     const backdrop = document.getElementById('settingsPopupBackdrop');
     const closeButton = document.querySelector('.close-popup'); // De "X" knop
@@ -49,11 +21,19 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+function toggleSettingsPopup() {
+    console.log("toggleSettingsPopup is called");
+    const popup = document.getElementById('settingsPopup');
+    const backdrop = document.getElementById('settingsPopupBackdrop');
 
-
-document.getElementById('settingsButton').addEventListener('click', toggleSettingsPopup);
-document.getElementById('settingsPopupBackdrop').addEventListener('click', toggleSettingsPopup);
-
+    if (popup.classList.contains('hidden')) {
+        popup.classList.remove('hidden');
+        backdrop.classList.remove('hidden');
+    } else {
+        popup.classList.add('hidden');
+        backdrop.classList.add('hidden');
+    }
+}
 
 function closePopupOnClickOutside(event) {
     const popup = document.getElementById('settingsPopup');
@@ -98,48 +78,12 @@ function uploadFile() {
     .catch(error => console.error('Error:', error));
 }
 
-
-function updateCounters(loaded, done, total) {
-    document.getElementById('loadedQuestions').textContent = loaded;
-    document.getElementById('doneThisRound').textContent = done;
-    document.getElementById('totalQuestions').textContent = total;
-}
-
-function startNewRound() {
-    let percentageInput = document.getElementById('percentageInput').value || '0';
-    let percentage = parseInt(percentageInput) || 0;
-
-    const selectedCategories = Array.from(document.getElementById('categorySelect').selectedOptions)
-                                    .map(option => option.value);
-
-    fetch('/next_round', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-            percentage_correct: percentage,
-            categories: selectedCategories 
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        currentQuestions = data;
-        const totalQuestions = document.getElementById('totalQuestions').textContent;
-        updateCounters(data.length, 0, totalQuestions);
-        displayFlashcards(currentQuestions);
-    })
-    .catch(error => console.error('Error starting new round:', error));
-}
-
-
-function showFlashcardControls() {
-    document.getElementById('downloadTemplateButton').style.display = 'none';
-    document.getElementById('fileInput').style.display = 'none';
-    document.getElementById('fileInputLabel').style.display = 'none';
-    document.getElementById('nextRoundButton').style.display = 'block';
-    document.getElementById('downloadCurrentButton').style.display = 'block';
-    document.querySelector('.teller-container').style.display = 'block';
-    document.getElementById('shuffleButton').style.display = 'block';
-    document.getElementById('settingsButton').style.display = 'block';
+function downloadTemplate() {
+    window.removeEventListener('beforeunload', handleBeforeUnload);
+    window.location.href = '/download_template';
+    setTimeout(() => {
+        window.addEventListener('beforeunload', handleBeforeUnload);
+    }, 1000);
 }
 
 function downloadCurrent() {
@@ -164,6 +108,130 @@ function downloadCurrent() {
     .catch(error => console.error('Error downloading the file:', error));
 }
 
+
+function handleCorrectClick(button) {
+    const flashcard = button.closest('.flashcard');
+    const id = flashcard.querySelector('.flashcard-id').textContent.replace('#', '');
+
+    // Markeer als correct en update de status in de backend
+    trackQuestion(id, 'correct');
+
+    // Visueel effect: kleur de knop groen
+    button.classList.add('correct');
+    button.style.backgroundColor = 'green';
+
+    // Verberg de incorrect knop
+    button.nextElementSibling.style.display = 'none';
+
+    // Toon de redo knop
+    const redoText = flashcard.querySelector('.redo-text');
+    redoText.classList.remove('hidden');
+    redoText.style.display = 'block'; // Zorg ervoor dat het zichtbaar wordt
+    redoText.onclick = function() {
+        resetAnswerButtons(button);
+    };
+
+    // Update de statistieken
+    updateStats();
+}
+
+function handleIncorrectClick(button) {
+    const flashcard = button.closest('.flashcard');
+    const id = flashcard.querySelector('.flashcard-id').textContent.replace('#', '');
+
+    // Markeer als incorrect en update de status in de backend
+    trackQuestion(id, 'incorrect');
+
+    // Visueel effect: kleur de knop rood
+    button.classList.add('incorrect');
+    button.style.backgroundColor = 'red';
+
+    // Verberg de correct knop
+    button.previousElementSibling.style.display = 'none';
+
+    // Toon de redo knop
+    const redoText = flashcard.querySelector('.redo-text');
+    redoText.classList.remove('hidden');
+    redoText.style.display = 'block'; // Zorg ervoor dat het zichtbaar wordt
+    redoText.onclick = function() {
+        resetAnswerButtons(button.previousElementSibling);
+    };
+
+    // Update de statistieken
+    updateStats();
+}
+
+function resetAnswerButtons(correctButton) {
+    const flashcard = correctButton.closest('.flashcard');
+    const incorrectButton = correctButton.nextElementSibling;
+
+    // Reset de knoppen: maak ze weer zichtbaar en verwijder de kleuring
+    correctButton.style.display = 'block';
+    correctButton.classList.remove('correct');
+    correctButton.style.backgroundColor = ''; // Verwijder de groene kleur
+
+    incorrectButton.style.display = 'block';
+    incorrectButton.classList.remove('incorrect');
+    incorrectButton.style.backgroundColor = ''; // Verwijder de rode kleur
+
+    // Verberg de redo knop
+    const redoText = flashcard.querySelector('.redo-text');
+    redoText.classList.add('hidden');
+    redoText.style.display = 'none'; // Zorg ervoor dat het verborgen wordt
+
+    // Zorg ervoor dat de knoppen correct zijn uitgelijnd in het midden en naast elkaar
+    const answerOptions = flashcard.querySelector('.answer-options');
+    answerOptions.classList.remove('hidden');
+    answerOptions.style.display = 'flex'; // Zorg ervoor dat de knoppen naast elkaar staan
+    correctButton.style.margin = '0 5px'; // Zorg voor ruimte tussen de knoppen
+    incorrectButton.style.margin = '0 5px'; // Zorg voor ruimte tussen de knoppen
+
+    // Reset de status van de vraag in de backend
+    const id = flashcard.querySelector('.flashcard-id').textContent.replace('#', '');
+    trackQuestion(id, 'unanswered');
+}
+
+
+
+
+function trackQuestion(id, status) {
+    fetch('/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify([{ id, status }])
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            console.log(`Question ${id} marked as ${status}`);
+        } else {
+            console.error('Failed to track question:', data.error);
+        }
+    })
+    .catch(error => console.error('Error tracking question:', error));
+}
+
+function updateStats() {
+    fetch('/get_stats')
+    .then(response => response.json())
+    .then(data => {
+        updateCounters(data.loaded_questions, data.done_this_round, data.total_questions);
+    })
+    .catch(error => console.error('Error updating stats:', error));
+}
+
+function updateCounters(loaded, done, total) {
+    document.getElementById('loadedQuestions').textContent = loaded;
+    document.getElementById('doneThisRound').textContent = done;
+    document.getElementById('totalQuestions').textContent = total;
+}
+
+
+function updateCounters(loaded, done, total) {
+    document.getElementById('loadedQuestions').textContent = loaded;
+    document.getElementById('doneThisRound').textContent = done;
+    document.getElementById('totalQuestions').textContent = total;
+}
 function displayFlashcards(data) {
     const flashcardsDiv = document.getElementById('flashcards');
     flashcardsDiv.innerHTML = '';
@@ -188,88 +256,6 @@ function displayFlashcards(data) {
 }
 
 
-function handleCorrectClick(button) {
-    // Markeer als correct en verberg de incorrecte knop
-    button.classList.add('correct');
-    button.style.backgroundColor = 'green';  // Zorg ervoor dat de knop groen blijft
-    button.nextElementSibling.style.display = 'none';  // Verberg de "Incorrect" knop
-
-    // Toon de Redo tekst
-    const redoText = button.parentElement.querySelector('.redo-text');
-    redoText.classList.remove('hidden');
-    redoText.style.display = 'block';
-
-    // Voeg de logica toe om de keuze te resetten
-    redoText.addEventListener('click', function() {
-        button.classList.remove('correct');  // Verwijder de correct-klasse
-        button.style.display = 'inline-block';
-        button.nextElementSibling.style.display = 'inline-block';
-        button.style.backgroundColor = '';  // Reset de achtergrondkleur
-        button.style.color = '';  // Reset de tekstkleur
-        redoText.style.display = 'none';
-    });
-}
-
-function handleIncorrectClick(button) {
-    // Markeer als incorrect en verberg de correcte knop
-    button.classList.add('incorrect');
-    button.style.backgroundColor = 'red';  // Zorg ervoor dat de knop rood blijft
-    button.previousElementSibling.style.display = 'none';  // Verberg de "Correct" knop
-
-    // Toon de Redo tekst
-    const redoText = button.parentElement.querySelector('.redo-text');
-    redoText.classList.remove('hidden');
-    redoText.style.display = 'block';
-
-    // Voeg de logica toe om de keuze te resetten
-    redoText.addEventListener('click', function() {
-        button.classList.remove('incorrect');  // Verwijder de incorrect-klasse
-        button.style.display = 'inline-block';
-        button.previousElementSibling.style.display = 'inline-block';
-        button.style.backgroundColor = '';  // Reset de achtergrondkleur
-        button.style.color = '';  // Reset de tekstkleur
-        redoText.style.display = 'none';
-    });
-}
-
-
-
-function markAsCorrect(button, id, answer) {
-    trackQuestion(id, answer, 'correct');
-    button.classList.add('correct');
-    button.style.display = 'none';  // Verberg de knop na het klikken
-    button.nextElementSibling.style.display = 'none';  // Verberg de "Incorrect" knop
-
-    const redoText = button.parentElement.querySelector('.redo-text');
-    redoText.style.display = 'block';  // Maak de "Redo" tekst zichtbaar
-
-    redoText.addEventListener('click', function() {
-        button.classList.remove('correct');
-        button.style.display = 'inline-block';  // Toon de "Correct" knop weer
-        button.nextElementSibling.style.display = 'inline-block';  // Toon de "Incorrect" knop weer
-        redoText.style.display = 'none';  // Verberg de "Redo" tekst
-    }, { once: true });
-}
-
-function markAsIncorrect(button, id, answer) {
-    trackQuestion(id, answer, 'incorrect');
-    button.classList.add('incorrect');
-    button.style.display = 'none';  // Verberg de knop na het klikken
-    button.previousElementSibling.style.display = 'none';  // Verberg de "Correct" knop
-
-    const redoText = button.parentElement.querySelector('.redo-text');
-    redoText.style.display = 'block';  // Maak de "Redo" tekst zichtbaar
-
-    redoText.addEventListener('click', function() {
-        button.classList.remove('incorrect');
-        button.style.display = 'inline-block';  // Toon de "Incorrect" knop weer
-        button.previousElementSibling.style.display = 'inline-block';  // Toon de "Correct" knop weer
-        redoText.style.display = 'none';  // Verberg de "Redo" tekst
-    }, { once: true });
-}
-
-
-
 function showAnswer(button) {
     const flashcard = button.parentElement;
     flashcard.querySelector('.answer').classList.remove('hidden');
@@ -281,39 +267,22 @@ function showAnswer(button) {
     if (flashcardId) {
         flashcardId.classList.remove('hidden');
     }
+
+    // Verberg de "Redo"-tekst tot een actie wordt uitgevoerd
+    const redoText = flashcard.querySelector('.redo-text');
+    redoText.classList.add('hidden');
+    redoText.style.display = 'none';
 }
 
-
-
-function markAsCorrect(button, id, answer) {
-    trackQuestion(id, answer, 'correct');
-    button.classList.add('correct');
-    button.nextElementSibling.classList.add('hidden');
-}
-
-function markAsIncorrect(button, id, answer) {
-    trackQuestion(id, answer, 'incorrect');
-    button.classList.add('incorrect');
-    button.previousElementSibling.classList.add('hidden');
-}
-
-function trackQuestion(id, answer, status) {
-    fetch('/track', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify([{ id, answer, status }])
-    })
-    .then(() => updateStats())
-    .catch(error => console.error('Error tracking question:', error));
-}
-
-function updateStats() {
-    fetch('/get_stats')
-    .then(response => response.json())
-    .then(data => {
-        updateCounters(data.loaded_questions, data.done_this_round, data.total_questions);
-    })
-    .catch(error => console.error('Error updating stats:', error));
+function showFlashcardControls() {
+    document.getElementById('downloadTemplateButton').style.display = 'none';
+    document.getElementById('fileInput').style.display = 'none';
+    document.getElementById('fileInputLabel').style.display = 'none';
+    document.getElementById('nextRoundButton').style.display = 'block';
+    document.getElementById('downloadCurrentButton').style.display = 'block';
+    document.querySelector('.teller-container').style.display = 'block';
+    document.getElementById('shuffleButton').style.display = 'block';
+    document.getElementById('settingsButton').style.display = 'block';
 }
 
 function shuffleQuestions() {
@@ -348,7 +317,6 @@ function shuffleQuestions() {
     displayFlashcards(shuffledQuestions);
 }
 
-
 function populateCategorySelect(categories) {
     const categorySelect = document.getElementById('categorySelect');
     categorySelect.innerHTML = ''; // Maak de huidige opties leeg
@@ -360,9 +328,6 @@ function populateCategorySelect(categories) {
         categorySelect.appendChild(option);
     });
 }
-
-
-
 
 function showDownloadCurrentButton() {
     document.getElementById('downloadCurrentButton').style.display = 'block';
